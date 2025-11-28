@@ -6,7 +6,7 @@ public class EmpujarPelota : MonoBehaviour
     public float distanciaRayo = 50f;
     public float duracionRayo = 0.5f;
     public float friccion = 0.95f;
-    public float alturaMinima = -10f; // Si caen más abajo de esto, respawnean
+    public float alturaMinima = -10f;
 
     private LineRenderer lineRenderer;
     private Camera cam;
@@ -15,7 +15,6 @@ public class EmpujarPelota : MonoBehaviour
 
     private GameObject rayoVisual;
 
-    // Posiciones iniciales
     private Vector3 posicionInicialJugador;
     private Vector3 posicionInicialPelota;
     private GameObject pelota;
@@ -23,7 +22,6 @@ public class EmpujarPelota : MonoBehaviour
 
     void Start()
     {
-        // Obtener la cámara
         cam = GetComponent<Camera>();
         if (cam == null)
         {
@@ -34,14 +32,12 @@ public class EmpujarPelota : MonoBehaviour
             cam = Camera.main;
         }
 
-        // Buscar el CharacterController o Rigidbody del jugador
         characterController = GetComponentInParent<CharacterController>();
         if (characterController == null)
         {
             playerRb = GetComponentInParent<Rigidbody>();
         }
 
-        // Guardar jugador y su posición inicial
         if (characterController != null)
         {
             jugador = characterController.gameObject;
@@ -52,19 +48,17 @@ public class EmpujarPelota : MonoBehaviour
         }
         else
         {
-            jugador = transform.root.gameObject; // El padre principal
+            jugador = transform.root.gameObject;
         }
 
         posicionInicialJugador = jugador.transform.position;
 
-        // Buscar pelota y guardar posición inicial
         pelota = GameObject.FindGameObjectWithTag("Pelota");
         if (pelota != null)
         {
             posicionInicialPelota = pelota.transform.position;
         }
 
-        // Crear LineRenderer
         lineRenderer = cam.gameObject.AddComponent<LineRenderer>();
         lineRenderer.startWidth = 0.02f;
         lineRenderer.endWidth = 0.02f;
@@ -75,7 +69,6 @@ public class EmpujarPelota : MonoBehaviour
         lineRenderer.positionCount = 2;
         lineRenderer.useWorldSpace = true;
 
-        // Crear cilindro visual alternativo
         rayoVisual = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         rayoVisual.name = "RayoVisual";
         Destroy(rayoVisual.GetComponent<Collider>());
@@ -101,13 +94,11 @@ public class EmpujarPelota : MonoBehaviour
             }
         }
 
-        // Verificar si cayeron al vacío
         VerificarCaidas();
     }
 
     void LateUpdate()
     {
-        // Frenar la pelota gradualmente
         if (pelota != null)
         {
             Rigidbody rb = pelota.GetComponent<Rigidbody>();
@@ -127,19 +118,24 @@ public class EmpujarPelota : MonoBehaviour
 
     void VerificarCaidas()
     {
-        // Verificar jugador
         if (jugador != null && jugador.transform.position.y < alturaMinima)
         {
             Debug.Log("¡Jugador cayó! Respawneando...");
             RespawnearJugador();
         }
 
-        // Verificar pelota
         if (pelota != null && pelota.transform.position.y < alturaMinima)
         {
             Debug.Log("¡Pelota cayó! Respawneando...");
             RespawnearPelota();
         }
+    }
+
+    public void RespawnearTodo()
+    {
+        Debug.Log("¡OBJETIVO ALCANZADO! Respawneando jugador y pelota...");
+        RespawnearJugador();
+        RespawnearPelota();
     }
 
     void RespawnearJugador()
@@ -171,6 +167,9 @@ public class EmpujarPelota : MonoBehaviour
         {
             rb.velocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
+
+            // Congelar la pelota de nuevo
+            rb.constraints = RigidbodyConstraints.FreezeAll;
         }
     }
 
@@ -226,7 +225,14 @@ public class EmpujarPelota : MonoBehaviour
 
                 if (rb != null)
                 {
+                    // Descongelar la pelota
+                    rb.constraints = RigidbodyConstraints.None;
+
+                    // Aplicar fuerza
                     rb.AddForce(direccion * fuerzaEmpuje, ForceMode.Impulse);
+
+                    // Volver a congelar después de 2 segundos
+                    Invoke("CongelarPelota", 2f);
                 }
             }
         }
@@ -237,6 +243,18 @@ public class EmpujarPelota : MonoBehaviour
         }
 
         MostrarRayo(origen, puntoFinal);
+    }
+
+    void CongelarPelota()
+    {
+        if (pelota != null)
+        {
+            Rigidbody rb = pelota.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.constraints = RigidbodyConstraints.FreezeAll;
+            }
+        }
     }
 
     void MostrarRayo(Vector3 inicio, Vector3 fin)
